@@ -127,7 +127,7 @@ fi
 echo "Client version|Honor ownership of existing mountpoints for fresh volumes|Honor ownership of existing mountpoints for reused volumes|Ownership of volumes mounted at non-existing mountpoints|Remembers ownership for reused vol mounted to non-existing mountpoint|Ownership for reused vol with non-existing mountpoint|Ownership for reused vol initially mounted to non-existing|"
 echo "$DOCKERVER|$HONORS_EXISTING_MOUNT_OWNERSHIP_FOR_FRESH_VOLUMES|$HONORS_EXISTING_MOUNT_OWNERSHIP_FOR_REUSED_VOLUMES|$OWNERSHIP_OF_NONEXISTINGMOUNTS|$REMEMBERS_OWNERSHIP_REUSED_TO_NONEXIST|$OWNERSHIP_OF_REUSED_VOL|$OWNERSHIP_OF_REUSED_NONEXIST_VOL|"
 
-if [ 1 == 1 ]; then
+if [ 0 == 1 ]; then
     echo first
     cat firstmountperms.txt
     echo second

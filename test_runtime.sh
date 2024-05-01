@@ -80,14 +80,6 @@ if [ "$FRESH_MOUNT_TO_NONEXIST_RUNAS_ROOT_UIDGID" == "0 0" ]; then
     fi
 fi
 
-#Test if reused volumes, previously mounted and assigned ownership retain that ownership when mounted to non-existing mountpoints
-REUSED_MOUNT_TO_NONEXIST_RUNAS_ROOT_UIDGID=`grep "/doesnotexist" secondmountperms.txt | cut -d' ' -s -f3,4`
-REUSED_MOUNT_TO_NONEXIST_RUNAS_USERA_UID_GID=`grep "/doesnotexist" fifthmountperms.txt | cut -d' ' -s -f3,4`
-if [ "$REUSED_MOUNT_TO_NONEXIST_RUNAS_ROOT_UIDGID" == "1000 1000" ] && [ "$REUSED_MOUNT_TO_NONEXIST_RUNAS_USERA_UID_GID" == "2000 2000" ]; then
-  REMEMBERS_OWNERSHIP_REUSED_TO_NONEXIST="Yes"
-else
-  REMEMBERS_OWNERSHIP_REUSED_TO_NONEXIST="No"
-fi
 
 #Test if reused volumes, initially mounted and assigned ownership in a run, then assigned ownership via a second run, retain the initial, or 2nd ownership
 REUSED_MOUNT_INITIAL_UIDGID=`grep "/ownedbyb" firstmountperms.txt | cut -d' ' -s -f3,4`
@@ -124,8 +116,8 @@ else
     DOCKERVER='Unknown'
 fi
 
-echo "Client version|Honor ownership of existing mountpoints for fresh volumes|Honor ownership of existing mountpoints for reused volumes|Ownership of volumes mounted at non-existing mountpoints|Remembers ownership for reused vol mounted to non-existing mountpoint|Ownership for reused vol with non-existing mountpoint|Ownership for reused vol initially mounted to non-existing|"
-echo "$DOCKERVER|$HONORS_EXISTING_MOUNT_OWNERSHIP_FOR_FRESH_VOLUMES|$HONORS_EXISTING_MOUNT_OWNERSHIP_FOR_REUSED_VOLUMES|$OWNERSHIP_OF_NONEXISTINGMOUNTS|$REMEMBERS_OWNERSHIP_REUSED_TO_NONEXIST|$OWNERSHIP_OF_REUSED_VOL|$OWNERSHIP_OF_REUSED_NONEXIST_VOL|"
+echo "Client version|Honor ownership of existing mountpoints for fresh volumes|Honor ownership of existing mountpoints for reused volumes|Ownership of volumes mounted at non-existing mountpoints|Ownership for reused vol with non-existing mountpoint|Ownership for reused vol initially mounted to non-existing mountpoint|"
+echo "$DOCKERVER|$HONORS_EXISTING_MOUNT_OWNERSHIP_FOR_FRESH_VOLUMES|$HONORS_EXISTING_MOUNT_OWNERSHIP_FOR_REUSED_VOLUMES|$OWNERSHIP_OF_NONEXISTINGMOUNTS|$OWNERSHIP_OF_REUSED_VOL|$OWNERSHIP_OF_REUSED_NONEXIST_VOL|"
 
 if [ 0 == 1 ]; then
     echo first

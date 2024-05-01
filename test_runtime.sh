@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#set -x
+set -x
 
 #change to podman if testing on podman
 which podman >/dev/null 2>&1
@@ -93,33 +93,27 @@ fi
 REUSED_MOUNT_INITIAL_UIDGID=`grep "/ownedbyb" firstmountperms.txt | cut -d' ' -s -f3,4`
 REUSED_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID=`grep "/ownedbya" secondmountperms.txt | cut -d' ' -s -f3,4`
 REUSED_REUSED_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID=`grep "/doesnotexist" thirdmountperms.txt | cut -d' ' -s -f3,4`
-if [ "$REUSED_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID" == "1000 1000" ]; then
-  if [ "$REUSED_REUSED_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID" == "$REUSED_MOUNT_INITIAL_UIDGID" ]; then
-    OWNERSHIP_OF_REUSED_VOL="First Assigned"
-  elif  [ "$REUSED_REUSED_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID" == "1000 1000" ]; then
-    OWNERSHIP_OF_REUSED_VOL="Last Assigned"
-  else 
-    OWNERSHIP_OF_REUSED_VOL="Unknown"
-  fi
-else
+if [ "$REUSED_REUSED_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID" == "$REUSED_MOUNT_INITIAL_UIDGID" ]; then
+  OWNERSHIP_OF_REUSED_VOL="First Assigned"
+elif  [ "$REUSED_REUSED_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID" == "1000 1000" ]; then
+  OWNERSHIP_OF_REUSED_VOL="Last Assigned"
+else 
   OWNERSHIP_OF_REUSED_VOL="Unknown"
 fi
+
 
 #Test if a reused volume, initially mounted to not-existing mountpoint, then assigned ownership via a second run, then to a not-existing, retain the 2nd ownership
 NONEXIST_MOUNT_INITIAL_UIDGID=`grep "/doesnotexist" firstmountperms.txt | cut -d' ' -s -f3,4`
 REUSED_NONEXIST_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID=`grep "/alsoownedbya" secondmountperms.txt | cut -d' ' -s -f3,4`
 REUSED_REUSED_NONEXIST_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID=`grep "/doesnotexist" fourthmountperms.txt | cut -d' ' -s -f3,4`
-if [ "$REUSED_NONEXIST_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID" == "1000 1000" ]; then
-  if [ "$REUSED_REUSED_NONEXIST_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID" == "$NONEXIST_MOUNT_INITIAL_UIDGID" ]; then
-    OWNERSHIP_OF_REUSED_NONEXIST_VOL="First Assigned"
-  elif  [ "$REUSED_REUSED_NONEXIST_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID" == "1000 1000" ]; then
-    OWNERSHIP_OF_REUSED_NONEXIST_VOL="Last Assigned"
-  else 
-    OWNERSHIP_OF_REUSED_NONEXIST_VOL="Unknown"
-  fi
-else
+if [ "$REUSED_REUSED_NONEXIST_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID" == "$NONEXIST_MOUNT_INITIAL_UIDGID" ]; then
+  OWNERSHIP_OF_REUSED_NONEXIST_VOL="First Assigned"
+elif  [ "$REUSED_REUSED_NONEXIST_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID" == "1000 1000" ]; then
+  OWNERSHIP_OF_REUSED_NONEXIST_VOL="Last Assigned"
+else 
   OWNERSHIP_OF_REUSED_NONEXIST_VOL="Unknown"
 fi
+
 
 if [ "$RUNTIME" == "docker" ]; then
     DOCKERVER=`$RUNTIME version -f '{{.Client.Platform.Name}} : {{.Client.Version}}'`
@@ -133,7 +127,7 @@ fi
 echo "Client version|Honor ownership of existing mountpoints for fresh volumes|Honor ownership of existing mountpoints for reused volumes|Ownership of volumes mounted at non-existing mountpoints|Remembers ownership for reused vol mounted to non-existing mountpoint|Ownership for reused vol with non-existing mountpoint|Ownership for reused vol initially mounted to non-existing|"
 echo "$DOCKERVER|$HONORS_EXISTING_MOUNT_OWNERSHIP_FOR_FRESH_VOLUMES|$HONORS_EXISTING_MOUNT_OWNERSHIP_FOR_REUSED_VOLUMES|$OWNERSHIP_OF_NONEXISTINGMOUNTS|$REMEMBERS_OWNERSHIP_REUSED_TO_NONEXIST|$OWNERSHIP_OF_REUSED_VOL|$OWNERSHIP_OF_REUSED_NONEXIST_VOL|"
 
-if [ 0 == 1 ]; then
+if [ 1 == 1 ]; then
     echo first
     cat firstmountperms.txt
     echo second

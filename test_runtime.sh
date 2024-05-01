@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+#set -x
 
 #change to podman if testing on podman
 which podman >/dev/null 2>&1

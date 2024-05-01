@@ -108,7 +108,7 @@ fi
 #Test if a reused volume, initially mounted to not-existing mountpoint, then assigned ownership via a second run, then to a not-existing, retain the 2nd ownership
 NONEXIST_MOUNT_INITIAL_UIDGID=`grep "/doesnotexist" firstmountperms.txt | cut -d' ' -s -f3,4`
 REUSED_NONEXIST_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID=`grep "/alsoownedbya" secondmountperms.txt | cut -d' ' -s -f3,4`
-REUSED_REUSED_NONEXIST_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID=`grep "/doesnotexist" thirdmountperms.txt | cut -d' ' -s -f3,4`
+REUSED_REUSED_NONEXIST_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID=`grep "/doesnotexist" fourthmountperms.txt | cut -d' ' -s -f3,4`
 if [ "$REUSED_NONEXIST_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID" == "1000 1000" ]; then
   if [ "$REUSED_REUSED_NONEXIST_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID" == "$NONEXIST_MOUNT_INITIAL_UIDGID" ]; then
     OWNERSHIP_OF_REUSED_NONEXIST_VOL="First Assigned"

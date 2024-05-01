@@ -3,7 +3,18 @@
 #set -x
 
 #change to podman if testing on podman
-RUNTIME=docker
+which podman >/dev/null 2>&1
+if [ "$?" == "0" ]; then
+    RUNTIME=podman
+else
+    which docker >/dev/null 2>&1
+    if [ "$?" == "0" ]; then
+        RUNTIME=docker
+    else
+        echo "Unknown runtime, only docker/podman supported."
+        exit
+    fi
+fi
 #image name used for testing
 IMG=permtestimage:0.0.1
 
@@ -35,41 +46,31 @@ $RUNTIME run --rm -ti -v permtestvol2:/ownedbya -v permtestvol1:/ownedbyb -v per
 #Testing userid for non-existing mountpoint when running as non root uid/gid with fresh/used volume.
 $RUNTIME run --rm -ti -v permtestvol7:/ownedbyb -v permtestvol2:/doesnotexist -v permtestvol8:/alsonotexist --user 1000:1000 $IMG '/bin/bash' '-c' 'stat -c "%A $a %u %g %n" /* | grep -E "owned|restricted|notexist"' > thirdmountperms.txt
 #Testing userid for existing mountpoint is honored when running as non-root
-$RUNTIME run --rm -ti -v permtestvol9:/ownedbyb -v paermtestvol6:/doesnotexist --user 1000:1000 $IMG '/bin/bash' '-c' 'stat -c "%A $a %u %g %n" /* | grep -E "owned|restricted|notexist"' > fourthmountperms.txt
+$RUNTIME run --rm -ti -v permtestvol9:/ownedbyb -v permtestvol6:/doesnotexist --user 1000:1000 $IMG '/bin/bash' '-c' 'stat -c "%A $a %u %g %n" /* | grep -E "owned|restricted|notexist"' > fourthmountperms.txt
 #Testing userid for existing mountpoint is honored when running as non-root
 $RUNTIME run --rm -ti -v permtestvol7:/doesnotexist --user 1000:1000 $IMG '/bin/bash' '-c' 'stat -c "%A $a %u %g %n" /* | grep -E "owned|restricted|notexist"' > fifthmountperms.txt
 
-# verify fresh mounts to existing/non-existing mountpoints
+#Test if fresh volumes, mounted to existing mountpoints gain the ownership of the existing mountpoints
 FRESH_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID=`grep "/alsoownedbya" firstmountperms.txt | cut -d' ' -s -f3,4`
 FRESH_MOUNT_TO_EXISTINGA_RUNAS_ROOT_UIDGID=`grep "/ownedbya" firstmountperms.txt | cut -d' ' -s -f3,4`
 FRESH_MOUNT_TO_EXISTINGB_RUNAS_ROOT_UIDGID=`grep "/ownedbyb" firstmountperms.txt | cut -d' ' -s -f3,4`
-
-REUSED_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID=`grep "/alsoownedbya" secondmountperms.txt | cut -d' ' -s -f3,4`
-REUSED_MOUNT_TO_EXISTINGA_RUNAS_ROOT_UIDGID=`grep "/ownedbya" secondmountperms.txt | cut -d' ' -s -f3,4`
-REUSED_MOUNT_TO_EXISTINGB_RUNAS_ROOT_UIDGID=`grep "/ownedbyb" secondmountperms.txt | cut -d' ' -s -f3,4`
-
-FRESH_MOUNT_TO_NONEXIST_RUNAS_ROOT_UIDGID=`grep "/doesnotexist" firstmountperms.txt | cut -d' ' -s -f3,4`
-FRESH_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID=`grep "/alsonotexist" thirdmountperms.txt | cut -d' ' -s -f3,4`
-
-REUSED_MOUNT_TO_NONEXIST_RUNAS_ROOT_UIDGID=`grep "/doesnotexist" secondmountperms.txt | cut -d' ' -s -f3,4`
-REUSED_MOUNT_TO_NONEXIST_RUNAS_USERA_UID_GID=`grep "/doesnotexist" fifthmountperms.txt | cut -d' ' -s -f3,4`
-
-REUSED_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID=`grep "/ownedbya" secondmountperms.txt | cut -d' ' -s -f3,4`
-REUSED_REUSED_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID=`grep "/doesnotexist" thirdmountperms.txt | cut -d' ' -s -f3,4`
-
-NONEXIST_TO_EXIST_TO_NONEXIST=`grep "/doesnotexist" fourthmountperms.txt | cut -d' ' -s -f3,4`
-
-
 HONORS_EXISTING_MOUNT_OWNERSHIP_FOR_FRESH_VOLUMES="No"
 if [ "$FRESH_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID" == "1000 1000" ] && [ "$FRESH_MOUNT_TO_EXISTINGA_RUNAS_ROOT_UIDGID" == "1000 1000" ] && [ "$FRESH_MOUNT_TO_EXISTINGB_RUNAS_ROOT_UIDGID" == "2000 2000" ]; then 
   HONORS_EXISTING_MOUNT_OWNERSHIP_FOR_FRESH_VOLUMES="Yes"
 fi
 
+#Test if reused volumes, previously mounted and assigned ownership gain the ownership of existing mountpoints
+REUSED_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID=`grep "/alsoownedbya" secondmountperms.txt | cut -d' ' -s -f3,4`
+REUSED_MOUNT_TO_EXISTINGA_RUNAS_ROOT_UIDGID=`grep "/ownedbya" secondmountperms.txt | cut -d' ' -s -f3,4`
+REUSED_MOUNT_TO_EXISTINGB_RUNAS_ROOT_UIDGID=`grep "/ownedbyb" secondmountperms.txt | cut -d' ' -s -f3,4`
 HONORS_EXISTING_MOUNT_OWNERSHIP_FOR_REUSED_VOLUMES="No"
 if [ "$REUSED_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID" == "1000 1000" ] && [ "$REUSED_MOUNT_TO_EXISTINGA_RUNAS_ROOT_UIDGID" == "1000 1000" ] && [ "$REUSED_MOUNT_TO_EXISTINGB_RUNAS_ROOT_UIDGID" == "2000 2000" ]; then 
   HONORS_EXISTING_MOUNT_OWNERSHIP_FOR_REUSED_VOLUMES="Yes"
 fi
 
+#Test if fresh volumes, mounted to a non-existing mountpoint gain ownership of root, or executing user.
+FRESH_MOUNT_TO_NONEXIST_RUNAS_ROOT_UIDGID=`grep "/doesnotexist" firstmountperms.txt | cut -d' ' -s -f3,4`
+FRESH_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID=`grep "/alsonotexist" thirdmountperms.txt | cut -d' ' -s -f3,4`
 OWNERSHIP_OF_NONEXISTINGMOUNTS=$FRESH_MOUNT_TO_NONEXIST_RUNAS_ROOT_UIDGID
 if [ "$FRESH_MOUNT_TO_NONEXIST_RUNAS_ROOT_UIDGID" == "0 0" ]; then
     if [ "$FRESH_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID" == "0 0" ]; then
@@ -79,14 +80,21 @@ if [ "$FRESH_MOUNT_TO_NONEXIST_RUNAS_ROOT_UIDGID" == "0 0" ]; then
     fi
 fi
 
+#Test if reused volumes, previously mounted and assigned ownership retain that ownership when mounted to non-existing mountpoints
+REUSED_MOUNT_TO_NONEXIST_RUNAS_ROOT_UIDGID=`grep "/doesnotexist" secondmountperms.txt | cut -d' ' -s -f3,4`
+REUSED_MOUNT_TO_NONEXIST_RUNAS_USERA_UID_GID=`grep "/doesnotexist" fifthmountperms.txt | cut -d' ' -s -f3,4`
 if [ "$REUSED_MOUNT_TO_NONEXIST_RUNAS_ROOT_UIDGID" == "1000 1000" ] && [ "$REUSED_MOUNT_TO_NONEXIST_RUNAS_USERA_UID_GID" == "2000 2000" ]; then
   REMEMBERS_OWNERSHIP_REUSED_TO_NONEXIST="Yes"
 else
   REMEMBERS_OWNERSHIP_REUSED_TO_NONEXIST="No"
 fi
 
+#Test if reused volumes, initially mounted and assigned ownership in a run, then assigned ownership via a second run, retain the initial, or 2nd ownership
+REUSED_MOUNT_INITIAL_UIDGID=`grep "/ownedbyb" firstmountperms.txt | cut -d' ' -s -f3,4`
+REUSED_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID=`grep "/ownedbya" secondmountperms.txt | cut -d' ' -s -f3,4`
+REUSED_REUSED_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID=`grep "/doesnotexist" thirdmountperms.txt | cut -d' ' -s -f3,4`
 if [ "$REUSED_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID" == "1000 1000" ]; then
-  if [ "$REUSED_REUSED_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID" == "2000 2000" ]; then
+  if [ "$REUSED_REUSED_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID" == "$REUSED_MOUNT_INITIAL_UIDGID" ]; then
     OWNERSHIP_OF_REUSED_VOL="First Assigned"
   elif  [ "$REUSED_REUSED_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID" == "1000 1000" ]; then
     OWNERSHIP_OF_REUSED_VOL="Last Assigned"
@@ -95,6 +103,22 @@ if [ "$REUSED_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID" == "1000 1000" ]; then
   fi
 else
   OWNERSHIP_OF_REUSED_VOL="Unknown"
+fi
+
+#Test if a reused volume, initially mounted to not-existing mountpoint, then assigned ownership via a second run, then to a not-existing, retain the 2nd ownership
+NONEXIST_MOUNT_INITIAL_UIDGID=`grep "/doesnotexist" firstmountperms.txt | cut -d' ' -s -f3,4`
+REUSED_NONEXIST_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID=`grep "/alsoownedbya" secondmountperms.txt | cut -d' ' -s -f3,4`
+REUSED_REUSED_NONEXIST_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID=`grep "/doesnotexist" thirdmountperms.txt | cut -d' ' -s -f3,4`
+if [ "$REUSED_NONEXIST_MOUNT_TO_EXISTING_RUNAS_ROOT_UIDGID" == "1000 1000" ]; then
+  if [ "$REUSED_REUSED_NONEXIST_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID" == "$NONEXIST_MOUNT_INITIAL_UIDGID" ]; then
+    OWNERSHIP_OF_REUSED_NONEXIST_VOL="First Assigned"
+  elif  [ "$REUSED_REUSED_NONEXIST_MOUNT_TO_NONEXIST_RUNAS_USERA_UIDGID" == "1000 1000" ]; then
+    OWNERSHIP_OF_REUSED_NONEXIST_VOL="Last Assigned"
+  else 
+    OWNERSHIP_OF_REUSED_NONEXIST_VOL="Unknown"
+  fi
+else
+  OWNERSHIP_OF_REUSED_NONEXIST_VOL="Unknown"
 fi
 
 if [ "$RUNTIME" == "docker" ]; then
@@ -106,10 +130,10 @@ else
     DOCKERVER='Unknown'
 fi
 
-echo "Client version|Honor ownership of existing mountpoints for fresh volumes|Honor ownership of existing mountpoints for reused volumes|Ownership of volumes mounted at non-existing mountpoints|Remembers ownership for reused vol mounted to non-existing mountpoint|Ownership for reused vol with non-existing mountpoint|"
-echo "$DOCKERVER|$HONORS_EXISTING_MOUNT_OWNERSHIP_FOR_FRESH_VOLUMES|$HONORS_EXISTING_MOUNT_OWNERSHIP_FOR_REUSED_VOLUMES|$OWNERSHIP_OF_NONEXISTINGMOUNTS|$REMEMBERS_OWNERSHIP_REUSED_TO_NONEXIST|$OWNERSHIP_OF_REUSED_VOL"
+echo "Client version|Honor ownership of existing mountpoints for fresh volumes|Honor ownership of existing mountpoints for reused volumes|Ownership of volumes mounted at non-existing mountpoints|Remembers ownership for reused vol mounted to non-existing mountpoint|Ownership for reused vol with non-existing mountpoint|Ownership for reused vol initially mounted to non-existing|"
+echo "$DOCKERVER|$HONORS_EXISTING_MOUNT_OWNERSHIP_FOR_FRESH_VOLUMES|$HONORS_EXISTING_MOUNT_OWNERSHIP_FOR_REUSED_VOLUMES|$OWNERSHIP_OF_NONEXISTINGMOUNTS|$REMEMBERS_OWNERSHIP_REUSED_TO_NONEXIST|$OWNERSHIP_OF_REUSED_VOL|$OWNERSHIP_OF_REUSED_NONEXIST_VOL|"
 
-if [ 1 == 1 ]; then
+if [ 0 == 1 ]; then
     echo first
     cat firstmountperms.txt
     echo second
@@ -118,6 +142,8 @@ if [ 1 == 1 ]; then
     cat thirdmountperms.txt
     echo fourth
     cat fourthmountperms.txt
+    echo fifth
+    cat fifthmountperms.txt
 fi
 
 rm *mountperms.txt
